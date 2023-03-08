@@ -28,11 +28,14 @@ public protocol ParsableArguments: Decodable {
   static var _errorLabel: String { get }
 }
 
-/// A type that provides the `ParsableCommand` interface to a `ParsableArguments` type.
+/// A type that provides the `ParsableCommand` interface to a `ParsableArguments` type,
+/// and set the `shouldPromptForMissing` to true.
 struct _WrappedParsableCommand<P: ParsableArguments>: ParsableCommand {
+  static var configuration: CommandConfiguration { .init(shouldPromptForMissing: false) }
+
   static var _commandName: String {
     let name = String(describing: P.self).convertedToSnakeCase()
-    
+
     // If the type is named something like "TransformOptions", we only want
     // to use "transform" as the command name.
     if let optionsRange = name.range(of: "_options"),
@@ -43,21 +46,19 @@ struct _WrappedParsableCommand<P: ParsableArguments>: ParsableCommand {
       return name
     }
   }
-  
+
   @OptionGroup var options: P
 }
 
 extension ParsableArguments {
   public mutating func validate() throws {}
-  
+
+  public static var _errorLabel: String { "Error" }
+
   /// This type as-is if it conforms to `ParsableCommand`, or wrapped in the
   /// `ParsableCommand` wrapper if not.
   internal static var asCommand: ParsableCommand.Type {
     self as? ParsableCommand.Type ?? _WrappedParsableCommand<Self>.self
-  }
-  
-  public static var _errorLabel: String {
-    "Error"
   }
 }
 

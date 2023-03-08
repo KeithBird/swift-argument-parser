@@ -80,6 +80,9 @@ var package = Package(
             name: "ArgumentParserGenerateManualTests",
             dependencies: ["ArgumentParserTestHelpers"]),
         .testTarget(
+            name: "ArgumentParserInteractiveTests",
+            dependencies: ["ArgumentParserTestHelpers"]),
+        .testTarget(
             name: "ArgumentParserPackageManagerTests",
             dependencies: ["ArgumentParser", "ArgumentParserTestHelpers"],
             exclude: ["CMakeLists.txt"]),

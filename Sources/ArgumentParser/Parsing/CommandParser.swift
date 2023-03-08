@@ -22,6 +22,10 @@ struct CommandParser {
   let commandTree: Tree<ParsableCommand.Type>
   var currentNode: Tree<ParsableCommand.Type>
   var decodedArguments: [DecodedArguments] = []
+  /// Used to simulate user input to test interactive mode.
+  ///
+  /// When not optional, an interactive shell will be mocked for testing.
+  var lineStack: [String]? = nil
   
   var rootCommand: ParsableCommand.Type {
     commandTree.element
@@ -34,6 +38,12 @@ struct CommandParser {
     } else {
       return result + [currentNode.element]
     }
+  }
+  
+  internal init(_ rootCommand: ParsableCommand.Type, lines: [String]) {
+    self.init(rootCommand)
+    self.lineStack = lines
+    lineStack?.reverse()
   }
   
   init(_ rootCommand: ParsableCommand.Type) {
@@ -139,9 +149,23 @@ extension CommandParser {
   /// Extracts the current command from `split`, throwing if decoding isn't
   /// possible.
   fileprivate mutating func parseCurrent(_ split: inout SplitArguments) throws -> ParsableCommand {
-    // Parse the arguments, ignoring anything unexpected
+    // Parse the arguments, ignoring anything unexpected.
     var parser = LenientParser(currentNode.element, split)
-    let values = try parser.parse()
+
+    func getValues() throws -> ParsedValues {
+      do {
+        // Parse the arguments, ignoring anything unexpected
+        return try parser.parse()
+      } catch {
+        try checkForBuiltInFlags(split)
+        
+        // Try to fix error by interacting with the user
+        guard canInteract(error: error, split: &split) else { throw error }
+        parser.inputArguments = split
+        return try getValues()
+      }
+    }
+    var values = try getValues()
     
     if currentNode.element.includesAllUnrecognizedArgument {
       // If this command includes an all-unrecognized argument, any built-in
@@ -149,18 +173,27 @@ extension CommandParser {
       // before decoding.
       try checkForBuiltInFlags(values.capturedUnrecognizedArguments)
     }
-    
-    // Decode the values from ParsedValues into the ParsableCommand:
-    let decoder = ArgumentDecoder(values: values, previouslyDecoded: decodedArguments)
-    var decodedResult: ParsableCommand
-    do {
-      decodedResult = try currentNode.element.init(from: decoder)
-    } catch let error {
-      // If decoding this command failed, see if they were asking for
-      // help before propagating that parsing failure.
-      try checkForBuiltInFlags(split)
-      throw error
+
+    func getDecoderAndResult() throws -> (ArgumentDecoder, ParsableCommand) {
+      // Decode the values from ParsedValues into the ParsableCommand:
+      let decoder = ArgumentDecoder(values: values, previouslyDecoded: decodedArguments)
+
+      do {
+        let decodedResult = try currentNode.element.init(from: decoder)
+        return (decoder, decodedResult)
+      } catch {
+        try checkForBuiltInFlags(split)
+
+        // Try to fix error by interacting with the user.
+        if canInteract(error: error, arguments: parser.argumentSet, values: &values) {
+          return try getDecoderAndResult()
+        } else {
+          // Propagating the parsing failure if we aren't interacting.
+          throw error
+        }
+      }
     }
+    let (decoder, decodedResult) = try getDecoderAndResult()
     
     // Decoding was successful, so remove the arguments that were used
     // by the decoder.
@@ -168,7 +201,7 @@ extension CommandParser {
     
     // Save the decoded results to add to the next command.
     let newDecodedValues = decoder.previouslyDecoded
-      .filter { prev in !decodedArguments.contains(where: { $0.type == prev.type })}
+      .filter { prev in !decodedArguments.contains(where: { $0.type == prev.type }) }
     decodedArguments.append(contentsOf: newDecodedValues)
     decodedArguments.append(DecodedArguments(type: currentNode.element, value: decodedResult))
 

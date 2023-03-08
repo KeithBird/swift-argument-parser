@@ -15,6 +15,7 @@ import ArgumentParserTestHelpers
 
 final class ParsableArgumentsValidationTests: XCTestCase {
   private struct A: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Option(help: "The number of times to repeat 'phrase'.")
     var count: Int?
 
@@ -30,6 +31,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   }
 
   private struct B: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Option(help: "The number of times to repeat 'phrase'.")
     var count: Int?
 
@@ -40,6 +42,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   }
 
   private struct C: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Option(help: "The number of times to repeat 'phrase'.")
     var count: Int?
 
@@ -252,6 +255,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
 
   // MARK: One name is duplicated
   fileprivate struct TwoOfTheSameName: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Option()
     var foo: String
 
@@ -310,6 +314,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
 
   // MARK: Argument has multiple names and one is duplicated
   fileprivate struct MultipleNamesPerArgument: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Flag(name: [.customShort("v"), .customLong("very-chatty")])
     var verbose: Bool = false
 
@@ -367,6 +372,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   // MARK: EnumerableFlag has first letter duplication
 
   fileprivate struct DuplicatedFirstLettersShortNames: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     enum ExampleEnum: String, EnumerableFlag {
       case first
       case second
@@ -384,6 +390,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   }
 
   fileprivate struct DuplicatedFirstLettersLongNames: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     enum ExampleEnum: String, EnumerableFlag {
       case first
       case second
@@ -409,8 +416,9 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   func testUniqueNamesValidation_DuplicatedFlagFirstLetters_LongNames() throws {
     XCTAssertNil(ParsableArgumentsUniqueNamesValidator.validate(DuplicatedFirstLettersLongNames.self, parent: nil))
   }
-    
+
   fileprivate struct HasOneNonsenseFlag: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     enum ExampleEnum: String, EnumerableFlag {
       case first
       case second
@@ -421,7 +429,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
 
     @Flag
     var enumFlag: ExampleEnum = .first
-    
+
     @Flag
     var fine: Bool = false
 
@@ -462,6 +470,7 @@ final class ParsableArgumentsValidationTests: XCTestCase {
   }
 
   fileprivate struct MultipleNonsenseFlags: ParsableCommand {
+    static var configuration = CommandConfiguration(shouldPromptForMissing: false)
     @Flag
     var stuff = true
 
